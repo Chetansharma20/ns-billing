@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useReactToPrint } from "react-to-print";
 import { logout } from "../utils/auth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   Save,
   Printer,
@@ -11,6 +11,8 @@ import {
   Download,
   MessageCircle,
   Copy,
+  LayoutDashboard,
+  FileText,
 } from "lucide-react";
 
 import { pdf } from "@react-pdf/renderer";
@@ -24,7 +26,6 @@ const INITIAL_STATE = {
   mobileNumber: "",
   address: "",
   customerGst: "",
-  customerPan: "",
   vehicleModel: "",
   chassisNo: "",
   motorNo: "",
@@ -32,95 +33,107 @@ const INITIAL_STATE = {
   chargerNo: "",
   color: "",
   price: "",
+  cashAmount: "",
+  onlineAmount: "",
   gstType: "cgst_sgst", // 'cgst_sgst' or 'igst'
   date: new Date().toISOString().split("T")[0],
   invoiceNumber: "",
 };
 
-const Billing = () => {
+const Billing = ({ type = "billing" }) => {
+  const isQuotation = type === "quotation";
+  const storageKey = isQuotation ? "quotationFormData" : "billingFormData";
+  const counterKey = isQuotation ? "quotationCounter" : "invoiceCounter";
+  const prefix = isQuotation ? "QTN" : "INV";
+  const title = isQuotation ? "EV Quotation System" : "EV Billing System";
+  const numberLabel = isQuotation ? "Quotation Number" : "Invoice Number";
+
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [previewData, setPreviewData] = useState(INITIAL_STATE); // Debounced data for preview
   const navigate = useNavigate();
   const componentRef = useRef();
 
-  // Generate invoice number on component mount or when creating new invoice
-  const generateInvoiceNumber = () => {
+  // Generate number on component mount or when creating new entry
+  const generateNumber = () => {
     const currentCounter = parseInt(
-      localStorage.getItem("invoiceCounter") || "0",
+      localStorage.getItem(counterKey) || "0",
       10
     );
     const newCounter = currentCounter + 1;
-    localStorage.setItem("invoiceCounter", newCounter.toString());
-    return `INV-${newCounter.toString().padStart(4, "0")}`;
+    localStorage.setItem(counterKey, newCounter.toString());
+    return `${prefix}-${newCounter.toString().padStart(4, "0")}`;
   };
 
-  // Preview next invoice number without incrementing counter
-  const getNextInvoicePreview = () => {
+  // Preview next number without incrementing counter
+  const getNextNumberPreview = () => {
     const currentCounter = parseInt(
-      localStorage.getItem("invoiceCounter") || "0",
+      localStorage.getItem(counterKey) || "0",
       10
     );
     const next = currentCounter + 1;
-    return `INV-${next.toString().padStart(4, "0")}`;
+    return `${prefix}-${next.toString().padStart(4, "0")}`;
   };
 
-  // Load from local storage on mount and prefill invoice number (preview)
+  // Load from local storage on mount and prefill number (preview)
   useEffect(() => {
-    const savedDataStr = localStorage.getItem("billingFormData");
-    const preview = getNextInvoicePreview();
+    const savedDataStr = localStorage.getItem(storageKey);
+    const preview = getNextNumberPreview();
     if (savedDataStr) {
       const parsed = JSON.parse(savedDataStr);
-      // If saved data doesn't have invoiceNumber, show preview but don't increment counter yet
-      if (!parsed.invoiceNumber) {
-        parsed.invoiceNumber = preview;
+      // Merge with INITIAL_STATE to ensure all fields exist (fixes controlled/uncontrolled error)
+      const merged = { ...INITIAL_STATE, ...parsed };
+
+      // If saved data doesn't have number, show preview but don't increment counter yet
+      if (!merged.invoiceNumber) {
+        merged.invoiceNumber = preview;
       }
-      setFormData(parsed);
+      setFormData(merged);
     } else {
-      // No saved data; set preview invoice number in form
-      setFormData((prev) => ({ ...prev, invoiceNumber: preview }));
+      // No saved data; set preview number in form
+      setFormData((prev) => ({ ...prev, invoiceNumber: preview, date: new Date().toISOString().split("T")[0] }));
     }
-  }, []);
+  }, [type]); // Re-run when switching between billing and quotation
 
   const handleSubmit = (e) => {
     if (e && e.preventDefault) e.preventDefault();
 
-    // Generate invoice number if not already set
+    // Generate number if not already set
     const dataToSave = {
       ...formData,
-      invoiceNumber: formData.invoiceNumber || generateInvoiceNumber(),
+      invoiceNumber: formData.invoiceNumber || generateNumber(),
     };
 
-    // Update form data with invoice number
+    // Update form data
     setFormData(dataToSave);
 
     // Save to localStorage
-    localStorage.setItem("billingData", JSON.stringify(dataToSave));
+    const historyKey = isQuotation ? "quotationData" : "billingData";
+    localStorage.setItem(historyKey, JSON.stringify(dataToSave));
 
-    // Ensure internal counter stored is at least the number used (previews don't increment counter until used)
+    // Ensure internal counter stored is at least the number used
     const digits = (dataToSave.invoiceNumber || "").replace(/\D/g, "");
     const parsed = digits ? parseInt(digits, 10) : NaN;
     if (Number.isFinite(parsed)) {
       const currentCounter = parseInt(
-        localStorage.getItem("invoiceCounter") || "0",
+        localStorage.getItem(counterKey) || "0",
         10
       );
       if (parsed > currentCounter) {
-        localStorage.setItem("invoiceCounter", parsed.toString());
+        localStorage.setItem(counterKey, parsed.toString());
       }
     }
 
-    // Return saved data so callers can use the generated invoice number synchronously
     return dataToSave;
   };
 
-  // Save to local storage on change (debounced to prevent lag)
+  // Save to local storage on change
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      localStorage.setItem("billingFormData", JSON.stringify(formData));
-    }, 500); // Save 500ms after user stops typing
+      localStorage.setItem(storageKey, JSON.stringify(formData));
+    }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [formData]);
+  }, [formData, storageKey]);
 
   // Debounce preview updates to prevent lag (300ms delay)
   useEffect(() => {
@@ -136,24 +149,23 @@ const Billing = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // When user manually edits invoice number, normalize it and sync local counter if the entered number is higher
-  const handleInvoiceBlur = () => {
-    const inv = formData.invoiceNumber || "";
-    const digits = inv.replace(/\D/g, "");
+  const handleNumberBlur = () => {
+    const num = formData.invoiceNumber || "";
+    const digits = num.replace(/\D/g, "");
     if (!digits) return;
     const parsed = parseInt(digits, 10);
     if (!Number.isFinite(parsed)) return;
 
-    // Normalize to INV-0001 format on blur
-    const normalized = `INV-${parsed.toString().padStart(4, "0")}`;
+    // Normalize format on blur
+    const normalized = `${prefix}-${parsed.toString().padStart(4, "0")}`;
     setFormData((prev) => ({ ...prev, invoiceNumber: normalized }));
 
     const currentCounter = parseInt(
-      localStorage.getItem("invoiceCounter") || "0",
+      localStorage.getItem(counterKey) || "0",
       10
     );
     if (parsed > currentCounter) {
-      localStorage.setItem("invoiceCounter", parsed.toString());
+      localStorage.setItem(counterKey, parsed.toString());
     }
   };
 
@@ -164,20 +176,21 @@ const Billing = () => {
 
   const clearForm = () => {
     if (window.confirm("Are you sure you want to clear the form?")) {
-      setFormData(INITIAL_STATE);
+      const preview = getNextNumberPreview();
+      setFormData({ ...INITIAL_STATE, invoiceNumber: preview });
     }
   };
 
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
-    documentTitle: `Invoice-${formData.customerName || "New"}`,
+    documentTitle: `${prefix}-${formData.customerName || "New"}`,
   });
 
   const handleDownload = async (dataOverride = null) => {
     // Ensure invoice number is generated (prefer provided dataOverride)
     const dataToUse = dataOverride || {
       ...formData,
-      invoiceNumber: formData.invoiceNumber || generateInvoiceNumber(),
+      invoiceNumber: formData.invoiceNumber || generateNumber(),
     };
 
     // Update state with invoice number if needed
@@ -191,6 +204,7 @@ const Billing = () => {
           data={dataToUse}
           logoBase64={logo}
           whatsappBase64={whatsappIcon}
+          type={type}
         />
       ).toBlob();
 
@@ -240,13 +254,13 @@ const Billing = () => {
           data={dataToUse}
           logoBase64={logo}
           whatsappBase64={whatsappIcon}
+          type={type}
         />
       ).toBlob();
 
       const file = new File(
         [blob],
-        `Invoice-${dataToUse.invoiceNumber || dataToUse.customerName || "New"
-        }.pdf`,
+        `${prefix}-${dataToUse.invoiceNumber || dataToUse.customerName || "New"}.pdf`,
         { type: "application/pdf" }
       );
 
@@ -254,23 +268,22 @@ const Billing = () => {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: "Invoice",
-          text: `Invoice for ${dataToUse.customerName}`,
+          title: isQuotation ? "Quotation" : "Invoice",
+          text: `${isQuotation ? "Quotation" : "Invoice"} for ${dataToUse.customerName}`,
         });
       } else {
         // Fallback for Desktop: Download & Open WhatsApp Web
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `Invoice-${dataToUse.invoiceNumber || dataToUse.customerName || "New"
-          }.pdf`;
+        link.download = `${prefix}-${dataToUse.invoiceNumber || dataToUse.customerName || "New"}.pdf`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
         const waUrl = `https://wa.me/${dataToUse.mobileNumber ? "91" + dataToUse.mobileNumber : ""
-          }?text=Please find the attached invoice.`;
+          }?text=Please find the attached ${isQuotation ? "quotation" : "invoice"}.`;
         window.open(waUrl, "_blank");
         alert(
           "PDF downloaded. Please attach it to the WhatsApp chat opened in the new tab."
@@ -290,9 +303,29 @@ const Billing = () => {
       <nav className="bg-white shadow-sm mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-bold text-gray-800">
-              EV Billing System
-            </h1>
+            <div className="flex items-center space-x-8">
+              <h1 className="text-xl font-bold text-gray-800">
+                {title}
+              </h1>
+              <div className="hidden md:flex items-center space-x-4">
+                <Link
+                  to="/billing"
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${!isQuotation ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-blue-600'
+                    }`}
+                >
+                  <LayoutDashboard className="h-4 w-4 mr-2" />
+                  Billing
+                </Link>
+                <Link
+                  to="/quotation"
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${isQuotation ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-blue-600'
+                    }`}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Quotation
+                </Link>
+              </div>
+            </div>
             <button
               onClick={handleLogout}
               className="flex items-center text-gray-600 hover:text-red-600 transition-colors"
@@ -300,6 +333,23 @@ const Billing = () => {
               <LogOut className="h-5 w-5 mr-2" />
               Logout
             </button>
+          </div>
+          {/* Mobile Navigation */}
+          <div className="md:hidden flex space-x-4 pb-2">
+            <Link
+              to="/billing"
+              className={`flex-1 text-center py-2 text-sm font-medium border-b-2 ${!isQuotation ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'
+                }`}
+            >
+              Billing
+            </Link>
+            <Link
+              to="/quotation"
+              className={`flex-1 text-center py-2 text-sm font-medium border-b-2 ${isQuotation ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'
+                }`}
+            >
+              Quotation
+            </Link>
           </div>
         </div>
       </nav>
@@ -311,7 +361,7 @@ const Billing = () => {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center">
                 <Save className="h-5 w-5 mr-2 text-blue-600" />
-                Billing Details
+                {isQuotation ? 'Quotation Details' : 'Billing Details'}
               </h2>
               <button
                 onClick={clearForm}
@@ -401,19 +451,6 @@ const Billing = () => {
                     value={formData.customerGst}
                     onChange={handleChange}
                     placeholder="e.g., 27ABCDE1234F1Z5"
-                    className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Customer PAN (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    name="customerPan"
-                    value={formData.customerPan}
-                    onChange={handleChange}
-                    placeholder="e.g., ABCDE1234F"
                     className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -518,7 +555,7 @@ const Billing = () => {
                   {/* Invoice Number - editable by user, with Generate button */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Invoice Number (optional)
+                      {numberLabel} (optional)
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -526,26 +563,18 @@ const Billing = () => {
                         name="invoiceNumber"
                         value={formData.invoiceNumber}
                         onChange={handleChange}
-                        onBlur={handleInvoiceBlur}
-                        placeholder="Leave blank to auto-generate (e.g., INV-0001)"
+                        onBlur={handleNumberBlur}
+                        placeholder={`Leave blank to auto-generate (e.g., ${prefix}-0001)`}
                         className="flex-1 px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                       <button
                         type="button"
                         onClick={() => {
-                          const gen = generateInvoiceNumber();
-                          const dataToSave = {
-                            ...formData,
-                            invoiceNumber: gen,
-                          };
-                          setFormData(dataToSave);
-                          localStorage.setItem(
-                            "billingData",
-                            JSON.stringify(dataToSave)
-                          );
+                          const num = generateNumber();
+                          setFormData((prev) => ({ ...prev, invoiceNumber: num }));
                         }}
                         className="px-4 py-3 bg-gray-100 rounded-md border border-gray-300 hover:bg-gray-200 transition-colors text-sm font-medium"
-                        title="Generate next invoice number"
+                        title="Generate next number"
                       >
                         Generate
                       </button>
@@ -567,6 +596,40 @@ const Billing = () => {
                       onChange={handleChange}
                       className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter base price"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                  Payment Breakdown (Optional)
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cash Amount (₹)
+                    </label>
+                    <input
+                      type="number"
+                      name="cashAmount"
+                      value={formData.cashAmount}
+                      onChange={handleChange}
+                      className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Online Amount (₹)
+                    </label>
+                    <input
+                      type="number"
+                      name="onlineAmount"
+                      value={formData.onlineAmount}
+                      onChange={handleChange}
+                      className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0.00"
                     />
                   </div>
                 </div>
@@ -617,7 +680,7 @@ const Billing = () => {
                   className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center shadow-sm text-base font-medium"
                 >
                   <Download className="h-5 w-5 mr-2" />
-                  Download Bill
+                  Download {isQuotation ? 'Quotation' : 'Bill'}
                 </button>
                 <button
                   type="button"
@@ -628,7 +691,7 @@ const Billing = () => {
                   className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center shadow-sm text-base font-medium"
                 >
                   <Printer className="h-5 w-5 mr-2" />
-                  Print Bill
+                  Print {isQuotation ? 'Quotation' : 'Bill'}
                 </button>
                 <button
                   type="button"
@@ -651,7 +714,7 @@ const Billing = () => {
               <div className="flex justify-between items-center mb-4 lg:mb-6">
                 <h2 className="text-lg lg:text-xl font-semibold text-gray-800 flex items-center">
                   <Printer className="h-5 w-5 mr-2 text-green-600" />
-                  Bill Preview
+                  {isQuotation ? 'Quotation Preview' : 'Bill Preview'}
                 </h2>
                 {/* Desktop Action Buttons */}
                 <div className="hidden lg:flex gap-2">
@@ -695,7 +758,7 @@ const Billing = () => {
                   className="bg-white shadow-sm mx-auto transform scale-50 origin-top lg:scale-75"
                   style={{ width: "210mm", minHeight: "297mm" }}
                 >
-                  <Invoice ref={componentRef} data={previewData} />
+                  <Invoice ref={componentRef} data={previewData} type={type} />
                 </div>
               </div>
             </div>

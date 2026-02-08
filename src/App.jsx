@@ -21,7 +21,12 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/billing" element={
             <PrivateRoute>
-              <Billing />
+              <Billing type="billing" />
+            </PrivateRoute>
+          } />
+          <Route path="/quotation" element={
+            <PrivateRoute>
+              <Billing type="quotation" />
             </PrivateRoute>
           } />
           <Route path="/" element={<Navigate to="/billing" replace />} />

@@ -6,10 +6,9 @@ import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/render
 const SHOP_DETAILS = {
     name: "NS MOTORS",
     address: "SERVE NO 208/9, SHOP NO 1, SHRIRAM NAGAR, YEOLA ROAD, Chamunda Steel Traders, Vidya Nagar, Kopargaon Ahilyanagar, Maharashtra, 423601",
-    mobile: "+91 77969 50202",
+    mobile: "+91 80554 43533",
     gstin: "27AKNPW2296B1ZR",
     hsn: "87116010",
-    pan: "AKNPW2296B",
     email: "nikhilwakode2006@gmail.com"
 };
 
@@ -310,23 +309,28 @@ const formatCurrency = (num) => {
     return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const InvoicePDF = ({ data, logoBase64, whatsappBase64 }) => {
+const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
+    const isQuotation = type === "quotation";
+    const numberLabel = isQuotation ? "Quotation No" : "Invoice No";
+    const docTitle = isQuotation ? "QUOTATION" : "TAX INVOICE";
+
     const {
-        customerName = '',
-        mobileNumber = '',
-        address = '',
-        customerGst = '',
-        customerPan = '',
-        vehicleModel = '',
-        chassisNo = '',
-        motorNo = '',
-        batteryNo = '',
-        chargerNo = '',
-        color = '',
-        price = 0,
+        customerName,
+        mobileNumber,
+        address,
+        customerGst,
+        vehicleModel,
+        chassisNo,
+        motorNo,
+        batteryNo,
+        chargerNo,
+        color,
+        price,
+        cashAmount,
+        onlineAmount,
         gstType = 'cgst_sgst',
-        date = '',
-        invoiceNumber = 'INV-0001'
+        date,
+        invoiceNumber
     } = data || {};
 
     const formattedDate = date ? new Date(date).toLocaleDateString('en-IN', {
@@ -374,7 +378,7 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64 }) => {
                             <Text style={styles.boldText}>Date: </Text>{formattedDate}
                         </Text>
                         <Text style={styles.invoiceText}>
-                            <Text style={styles.boldText}>Invoice No: </Text>{invoiceNumber}
+                            <Text style={styles.boldText}>{numberLabel}: </Text>{invoiceNumber}
                         </Text>
                         <Text style={styles.invoiceText}>Pro Nikhil Manoj wakode</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: -2 }}>
@@ -409,11 +413,6 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64 }) => {
                             <Text style={styles.customerRow}>
                                 <Text style={styles.boldText}>Address: </Text>{address}
                             </Text>
-                            {customerPan && (
-                                <Text style={styles.customerRow}>
-                                    <Text style={styles.boldText}>PAN: </Text>{customerPan.toUpperCase()}
-                                </Text>
-                            )}
                         </View>
                     </View>
                 </View>
@@ -483,6 +482,19 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64 }) => {
                         <Text style={styles.totalLabel}>Total Amount (Rs.)</Text>
                         <Text style={styles.totalValue}>{formatCurrency(totalAmount)}</Text>
                     </View>
+
+                    {(cashAmount !== "" || onlineAmount !== "") && (
+                        <View style={{ marginTop: 5, padding: 5, borderTopWidth: 1, borderTopColor: '#9ca3af', borderTopStyle: 'dashed' }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
+                                <Text style={{ fontSize: 9, fontWeight: 'bold' }}>CASH PAYMENT:</Text>
+                                <Text style={{ fontSize: 9 }}>Rs. {formatCurrency(parseFloat(cashAmount) || 0)}</Text>
+                            </View>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                <Text style={{ fontSize: 9, fontWeight: 'bold' }}>ONLINE PAYMENT:</Text>
+                                <Text style={{ fontSize: 9 }}>Rs. {formatCurrency(parseFloat(onlineAmount) || 0)}</Text>
+                            </View>
+                        </View>
+                    )}
 
                     {/* Amount in Words */}
                     <View style={styles.wordsRow}>

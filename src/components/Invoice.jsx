@@ -8,21 +8,23 @@ import whatsappIcon from '../assets/whatsapp-icon.png';
 const SHOP_DETAILS = {
     name: "NS MOTORS",
     address: "SERVE NO 208/9, SHOP NO 1, SHRIRAM NAGAR, YEOLA ROAD, Chamunda Steel Traders, Vidya Nagar, Kopargaon Ahilyanagar, Maharashtra, 423601",
-    mobile: "+91 77969 50202",
+    mobile: "+91 80554 43533",
     // email: "contact@greenride.com",
     gstin: "27AKNPW2296B1ZR",
     hsn: "87116010", // Hardcoded HSN for electric motorcycles,
-    pan: "AKNPW2296B",
+
     email: "nikhilwakode2006@gmail.com"
 };
 
-const Invoice = React.forwardRef(({ data }, ref) => {
+const Invoice = React.forwardRef(({ data, type = "billing" }, ref) => {
+    const isQuotation = type === "quotation";
+    const numberLabel = isQuotation ? "Quotation No" : "Invoice No";
+
     const {
         customerName,
         mobileNumber,
         address,
         customerGst,
-        customerPan,
         vehicleModel,
         chassisNo,
         motorNo,
@@ -30,6 +32,8 @@ const Invoice = React.forwardRef(({ data }, ref) => {
         chargerNo,
         color,
         price,
+        cashAmount,
+        onlineAmount,
         gstType = 'cgst_sgst',
         date,
         invoiceNumber
@@ -88,6 +92,10 @@ const Invoice = React.forwardRef(({ data }, ref) => {
         return res + 'Only';
     };
 
+    const formatCurrency = (num) => {
+        return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
     return (
         <div ref={ref} className="bg-slate-50 p-4 text-slate-900 font-sans box-border h-full flex flex-col justify-between" style={{ position: 'relative', overflow: 'hidden' }}>
             {/* Invoice Header */}
@@ -119,7 +127,7 @@ const Invoice = React.forwardRef(({ data }, ref) => {
                             {/* <h2 className="text-lg font-black text-gray-900 mb-1 leading-tight uppercase tracking-wide">TAX INVOICE</h2> */}
                             <div className="text-[11px] text-gray-700 space-y-0.5 font-medium">
                                 <p><span className="font-bold">Date:</span> {formattedDate}</p>
-                                <p><span className="font-bold">Invoice No:</span> {invoiceNumber || 'INV-0001'}</p>
+                                <p><span className="font-bold">{numberLabel}:</span> {invoiceNumber || (isQuotation ? 'QTN-0001' : 'INV-0001')}</p>
                                 <p><span className="font-semibold">Pro Nikhil Manoj wakode</span> </p>
                                 <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', lineHeight: '1' }}>
                                     <img src={whatsappIcon} alt="WhatsApp" width="16" height="16" style={{ flexShrink: 0, display: 'block' }} />
@@ -141,7 +149,6 @@ const Invoice = React.forwardRef(({ data }, ref) => {
                         </div>
                         <div>
                             <p className="font-medium"><span className="font-bold text-gray-900">Address:</span> {address}</p>
-                            {customerPan && <p className="font-medium"><span className="font-bold text-gray-900">PAN:</span> <span className="uppercase">{customerPan}</span></p>}
                         </div>
                     </div>
                 </div>
@@ -211,6 +218,18 @@ const Invoice = React.forwardRef(({ data }, ref) => {
                                 <td colSpan="6" className="border-3 border-slate-800 p-2 text-left">
                                     <span className="font-bold">Total Amount in Words: </span>
                                     <span className="italic uppercase text-xs">{numberToWords(totalAmount)}</span>
+                                    {(cashAmount !== "" || onlineAmount !== "") && (
+                                        <div className="mt-2 pt-1 border-t border-dashed border-slate-400 text-[10px] text-slate-600 font-bold uppercase">
+                                            <div className="flex justify-between">
+                                                <span>Cash Payment:</span>
+                                                <span>₹ {formatCurrency(parseFloat(cashAmount) || 0)}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Online Payment:</span>
+                                                <span>₹ {formatCurrency(parseFloat(onlineAmount) || 0)}</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </td>
                             </tr>
                         </tfoot>
