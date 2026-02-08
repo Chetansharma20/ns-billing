@@ -46,8 +46,9 @@ const Invoice = React.forwardRef(({ data, type = "billing" }, ref) => {
     }) : '';
 
     // GST Calculations
-    // Price entered is the base price (before GST)
-    const basePrice = parseFloat(price) || 0;
+    // Price entered is the Final Amount (Inclusive of GST)
+    const finalAmount = parseFloat(price) || 0;
+    const basePrice = finalAmount / 1.05; // Back-calculate base price (assuming 5% GST total)
 
     let cgst = 0;
     let sgst = 0;
@@ -61,7 +62,8 @@ const Invoice = React.forwardRef(({ data, type = "billing" }, ref) => {
     }
 
     const totalGst = cgst + sgst + igst;
-    const totalAmount = basePrice + totalGst;
+    // totalAmount should match the entered price (finalAmount)
+    const totalAmount = finalAmount;
 
     const numberToWords = (num) => {
         const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];

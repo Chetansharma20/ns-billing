@@ -587,7 +587,7 @@ const Billing = ({ type = "billing" }) => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Price (₹) *
+                      Final Price (Inc. GST) *
                     </label>
                     <input
                       type="number"

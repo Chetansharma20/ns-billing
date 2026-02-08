@@ -339,7 +339,8 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
         year: 'numeric'
     }) : '';
 
-    const basePrice = parseFloat(price) || 0;
+    const finalAmount = parseFloat(price) || 0;
+    const basePrice = finalAmount / 1.05;
     let cgst = 0, sgst = 0, igst = 0;
 
     if (gstType === 'cgst_sgst') {
@@ -350,7 +351,7 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
     }
 
     const totalGst = cgst + sgst + igst;
-    const totalAmount = basePrice + totalGst;
+    const totalAmount = finalAmount;
 
     return (
         <Document>
