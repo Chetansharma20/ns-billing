@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import { logout } from "../utils/auth";
 import { useNavigate, Link } from "react-router-dom";
@@ -6,11 +6,9 @@ import {
   Save,
   Printer,
   LogOut,
-  RefreshCw,
   Trash2,
   Download,
   MessageCircle,
-  Copy,
   LayoutDashboard,
   FileText,
 } from "lucide-react";
@@ -35,6 +33,11 @@ const INITIAL_STATE = {
   price: "",
   cashAmount: "",
   onlineAmount: "",
+  chequeAmount: "",
+  financedAmount: "", // Effectively the "Remaining Amount"
+  monthlyEmi: "",
+  financeTenure: "",
+  financerName: "",
   gstType: "cgst_sgst", // 'cgst_sgst' or 'igst'
   date: new Date().toISOString().split("T")[0],
   invoiceNumber: "",
@@ -42,11 +45,13 @@ const INITIAL_STATE = {
 
 const Billing = ({ type = "billing" }) => {
   const isQuotation = type === "quotation";
-  const storageKey = isQuotation ? "quotationFormData" : "billingFormData";
-  const counterKey = isQuotation ? "quotationCounter" : "invoiceCounter";
-  const prefix = isQuotation ? "QTN" : "INV";
-  const title = isQuotation ? "EV Quotation System" : "EV Billing System";
-  const numberLabel = isQuotation ? "Quotation Number" : "Invoice Number";
+  const isFinance = type === "finance";
+
+  const storageKey = isQuotation ? "quotationFormData" : isFinance ? "financeFormData" : "billingFormData";
+  const counterKey = isQuotation ? "quotationCounter" : isFinance ? "financeCounter" : "invoiceCounter";
+  const prefix = isQuotation ? "QTN" : isFinance ? "FIN" : "INV";
+  const title = isQuotation ? "EV Quotation System" : isFinance ? "EV EMI Billing System" : "EV Billing System";
+  const numberLabel = isQuotation ? "Quotation Number" : isFinance ? "Finance No" : "Invoice Number";
 
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [previewData, setPreviewData] = useState(INITIAL_STATE); // Debounced data for preview
@@ -227,7 +232,7 @@ const Billing = ({ type = "billing" }) => {
     // Ensure invoice number is generated (prefer provided dataOverride)
     const dataToUse = dataOverride || {
       ...formData,
-      invoiceNumber: formData.invoiceNumber || generateInvoiceNumber(),
+      invoiceNumber: formData.invoiceNumber || generateNumber(),
     };
 
     if (!formData.invoiceNumber && dataToUse.invoiceNumber) {
@@ -310,15 +315,23 @@ const Billing = ({ type = "billing" }) => {
               <div className="hidden md:flex items-center space-x-4">
                 <Link
                   to="/billing"
-                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${!isQuotation ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-blue-600'
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${type === 'billing' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-blue-600'
                     }`}
                 >
                   <LayoutDashboard className="h-4 w-4 mr-2" />
                   Billing
                 </Link>
                 <Link
+                  to="/finance"
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${type === 'finance' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-blue-600'
+                    }`}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  EMI Billing
+                </Link>
+                <Link
                   to="/quotation"
-                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${isQuotation ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-blue-600'
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${type === 'quotation' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-blue-600'
                     }`}
                 >
                   <FileText className="h-4 w-4 mr-2" />
@@ -338,14 +351,21 @@ const Billing = ({ type = "billing" }) => {
           <div className="md:hidden flex space-x-4 pb-2">
             <Link
               to="/billing"
-              className={`flex-1 text-center py-2 text-sm font-medium border-b-2 ${!isQuotation ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'
+              className={`flex-1 text-center py-2 text-sm font-medium border-b-2 ${type === 'billing' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'
                 }`}
             >
               Billing
             </Link>
             <Link
+              to="/finance"
+              className={`flex-1 text-center py-2 text-sm font-medium border-b-2 ${type === 'finance' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'
+                }`}
+            >
+              EMI
+            </Link>
+            <Link
               to="/quotation"
-              className={`flex-1 text-center py-2 text-sm font-medium border-b-2 ${isQuotation ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'
+              className={`flex-1 text-center py-2 text-sm font-medium border-b-2 ${type === 'quotation' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'
                 }`}
             >
               Quotation
@@ -605,7 +625,7 @@ const Billing = ({ type = "billing" }) => {
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
                   Payment Breakdown (Optional)
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Cash Amount (₹)
@@ -632,8 +652,88 @@ const Billing = ({ type = "billing" }) => {
                       placeholder="0.00"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cheque Amount (₹)
+                    </label>
+                    <input
+                      type="number"
+                      name="chequeAmount"
+                      value={formData.chequeAmount}
+                      onChange={handleChange}
+                      className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0.00"
+                    />
+                  </div>
                 </div>
               </div>
+
+              {(isFinance || isQuotation) && (
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                    Finance Details (Optional)
+                  </h3>
+
+                  <div className="bg-blue-50 p-4 rounded-md mb-4 border border-blue-100">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">Total Down Payment:</span>
+                        <span className="block text-lg font-bold text-gray-800">
+                          ₹ {((parseFloat(formData.cashAmount) || 0) + (parseFloat(formData.onlineAmount) || 0) + (parseFloat(formData.chequeAmount) || 0)).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Remaining / Loan Amount:</span>
+                        <span className="block text-lg font-bold text-blue-700">
+                          ₹ {Math.max(0, (parseFloat(formData.price) || 0) - ((parseFloat(formData.cashAmount) || 0) + (parseFloat(formData.onlineAmount) || 0) + (parseFloat(formData.chequeAmount) || 0))).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Bank / Financer Name
+                      </label>
+                      <input
+                        type="text"
+                        name="financerName"
+                        value={formData.financerName}
+                        onChange={handleChange}
+                        className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="e.g., IDFC First Bank"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Monthly EMI Amount (₹)
+                      </label>
+                      <input
+                        type="number"
+                        name="monthlyEmi"
+                        value={formData.monthlyEmi}
+                        onChange={handleChange}
+                        className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Tenure (Months)
+                      </label>
+                      <input
+                        type="number"
+                        name="financeTenure"
+                        value={formData.financeTenure}
+                        onChange={handleChange}
+                        className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="e.g 12, 24"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="border-t pt-4 mt-4">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">

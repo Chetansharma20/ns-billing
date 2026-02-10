@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     },
     tableHeaderCell: {
         padding: 6,
-        fontWeight: 900,
+        fontWeight: 'bold',
         fontSize: 9,
         color: '#0f172a',
         borderRightWidth: 1,
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
         width: '80%',
         padding: 6,
         textAlign: 'right',
-        fontWeight: 700,
+        fontWeight: 'bold',
         fontSize: 9,
         borderRightWidth: 1,
         borderRightColor: '#4b5563',
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
         width: '20%',
         padding: 6,
         textAlign: 'right',
-        fontWeight: 700,
+        fontWeight: 'bold',
         fontSize: 9,
     },
     totalRow: {
@@ -173,17 +173,17 @@ const styles = StyleSheet.create({
         width: '80%',
         padding: 8,
         textAlign: 'right',
-        fontWeight: 900,
         fontSize: 11,
         borderRightWidth: 1,
         borderRightColor: '#1e293b',
+        fontWeight: 'bold',
     },
     totalValue: {
         width: '20%',
         padding: 8,
         textAlign: 'right',
-        fontWeight: 900,
         fontSize: 11,
+        fontWeight: 'bold',
     },
     wordsRow: {
         flexDirection: 'row',
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     },
     termsTitle: {
         fontSize: 10,
-        fontWeight: 900,
+        fontWeight: 'bold',
         color: '#111827',
         textTransform: 'uppercase',
         marginBottom: 6,
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     },
     signatureLabel: {
         fontSize: 9,
-        fontWeight: 700,
+        fontWeight: 'bold',
         color: '#111827',
     },
     signatureSubLabel: {
@@ -306,7 +306,12 @@ const numberToWords = (num) => {
 };
 
 const formatCurrency = (num) => {
-    return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    try {
+        if (num === undefined || num === null) return "0.00";
+        return new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+    } catch (e) {
+        return (num || 0).toFixed(2);
+    }
 };
 
 const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
@@ -328,6 +333,10 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
         price,
         cashAmount,
         onlineAmount,
+        chequeAmount,
+        monthlyEmi,
+        financeTenure,
+        financerName,
         gstType = 'cgst_sgst',
         date,
         invoiceNumber
@@ -352,6 +361,11 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
 
     const totalGst = cgst + sgst + igst;
     const totalAmount = finalAmount;
+
+    // Derived Financials
+    const downPayment = (parseFloat(cashAmount) || 0) + (parseFloat(onlineAmount) || 0) + (parseFloat(chequeAmount) || 0);
+    const financedAmount = Math.max(0, totalAmount - downPayment);
+    const isFinanced = parseFloat(monthlyEmi) > 0 && parseFloat(financeTenure) > 0;
 
     return (
         <Document>
@@ -483,18 +497,50 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
                         <Text style={styles.totalValue}>{formatCurrency(totalAmount)}</Text>
                     </View>
 
-                    {(cashAmount !== "" || onlineAmount !== "") && (
-                        <View style={{ marginTop: 5, padding: 5, borderTopWidth: 1, borderTopColor: '#9ca3af', borderTopStyle: 'dashed' }}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
-                                <Text style={{ fontSize: 9, fontWeight: 'bold' }}>CASH PAYMENT:</Text>
-                                <Text style={{ fontSize: 9 }}>Rs. {formatCurrency(parseFloat(cashAmount) || 0)}</Text>
+                    {/* Payment Breakdown - Show if any payment exists */}
+                    {(
+                        (cashAmount !== "" && parseFloat(cashAmount) > 0) ||
+                        (onlineAmount !== "" && parseFloat(onlineAmount) > 0) ||
+                        (chequeAmount !== "" && parseFloat(chequeAmount) > 0)
+                    ) && (
+                            <View style={{ marginTop: 5, padding: 5, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#d1d5db', borderStyle: 'solid' }}>
+                                {cashAmount !== "" && parseFloat(cashAmount) > 0 && (
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
+                                        <Text style={{ fontSize: 9, fontWeight: 'bold' }}>CASH PAYMENT:</Text>
+                                        <Text style={{ fontSize: 9 }}>Rs. {formatCurrency(parseFloat(cashAmount) || 0)}</Text>
+                                    </View>
+                                )}
+                                {onlineAmount !== "" && parseFloat(onlineAmount) > 0 && (
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
+                                        <Text style={{ fontSize: 9, fontWeight: 'bold' }}>ONLINE PAYMENT:</Text>
+                                        <Text style={{ fontSize: 9 }}>Rs. {formatCurrency(parseFloat(onlineAmount) || 0)}</Text>
+                                    </View>
+                                )}
+                                {chequeAmount !== "" && parseFloat(chequeAmount) > 0 && (
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
+                                        <Text style={{ fontSize: 9, fontWeight: 'bold' }}>CHEQUE PAYMENT:</Text>
+                                        <Text style={{ fontSize: 9 }}>Rs. {formatCurrency(parseFloat(chequeAmount) || 0)}</Text>
+                                    </View>
+                                )}
+
+                                {isFinanced && (
+                                    <>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#d1d5db', borderTopStyle: 'dotted', paddingTop: 2, marginTop: 2 }}>
+                                            <Text style={{ fontSize: 9, fontWeight: 'bold' }}>TOTAL DOWN PAYMENT:</Text>
+                                            <Text style={{ fontSize: 9 }}>Rs. {formatCurrency(downPayment)}</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+                                            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#1e40af' }}>FINANCED / REMAINING:</Text>
+                                            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#1e40af' }}>Rs. {formatCurrency(financedAmount)}</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 1 }}>
+                                            <Text style={{ fontSize: 9 }}>EMI Details: {monthlyEmi} x {financeTenure} Months</Text>
+                                            <Text style={{ fontSize: 9 }}>{financerName ? `(${financerName.toUpperCase()})` : ''}</Text>
+                                        </View>
+                                    </>
+                                )}
                             </View>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                <Text style={{ fontSize: 9, fontWeight: 'bold' }}>ONLINE PAYMENT:</Text>
-                                <Text style={{ fontSize: 9 }}>Rs. {formatCurrency(parseFloat(onlineAmount) || 0)}</Text>
-                            </View>
-                        </View>
-                    )}
+                        )}
 
                     {/* Amount in Words */}
                     <View style={styles.wordsRow}>

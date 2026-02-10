@@ -34,6 +34,10 @@ const Invoice = React.forwardRef(({ data, type = "billing" }, ref) => {
         price,
         cashAmount,
         onlineAmount,
+        chequeAmount,
+        monthlyEmi,
+        financeTenure,
+        financerName,
         gstType = 'cgst_sgst',
         date,
         invoiceNumber
@@ -64,6 +68,11 @@ const Invoice = React.forwardRef(({ data, type = "billing" }, ref) => {
     const totalGst = cgst + sgst + igst;
     // totalAmount should match the entered price (finalAmount)
     const totalAmount = finalAmount;
+
+    // Derived Financials
+    const downPayment = (parseFloat(cashAmount) || 0) + (parseFloat(onlineAmount) || 0) + (parseFloat(chequeAmount) || 0);
+    const financedAmount = Math.max(0, totalAmount - downPayment);
+    const isFinanced = parseFloat(monthlyEmi) > 0 && parseFloat(financeTenure) > 0;
 
     const numberToWords = (num) => {
         const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
@@ -213,25 +222,61 @@ const Invoice = React.forwardRef(({ data, type = "billing" }, ref) => {
                                 </tr>
                             )}
                             <tr className="bg-slate-200 text-slate-900">
-                                <td colSpan="5" className="border-3 border-slate-800 p-3 text-right font-black text-base">Total Amount (Rs.)</td>
-                                <td className="border-3 border-slate-800 p-3 text-right font-black text-base">{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td colSpan="5" className="border-2 border-slate-800 p-3 text-right font-bold text-base">Total Amount (Rs.)</td>
+                                <td className="border-2 border-slate-800 p-3 text-right font-bold text-base">{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                             <tr className="bg-white">
                                 <td colSpan="6" className="border-3 border-slate-800 p-2 text-left">
                                     <span className="font-bold">Total Amount in Words: </span>
                                     <span className="italic uppercase text-xs">{numberToWords(totalAmount)}</span>
-                                    {(cashAmount !== "" || onlineAmount !== "") && (
-                                        <div className="mt-2 pt-1 border-t border-dashed border-slate-400 text-[10px] text-slate-600 font-bold uppercase">
-                                            <div className="flex justify-between">
-                                                <span>Cash Payment:</span>
-                                                <span>₹ {formatCurrency(parseFloat(cashAmount) || 0)}</span>
+                                    <span className="italic uppercase text-xs">{numberToWords(totalAmount)}</span>
+
+                                    {/* Payment Breakdown - Show if any payment exists */}
+                                    {(
+                                        (cashAmount !== "" && parseFloat(cashAmount) > 0) ||
+                                        (onlineAmount !== "" && parseFloat(onlineAmount) > 0) ||
+                                        (chequeAmount !== "" && parseFloat(chequeAmount) > 0)
+                                    ) && (
+                                            <div className="mt-2 pt-1 border-t border-dashed border-slate-400 text-[10px] text-slate-600 font-bold uppercase">
+                                                {/* Individual Payment Methods */}
+                                                {cashAmount !== "" && parseFloat(cashAmount) > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span>Cash Payment:</span>
+                                                        <span>₹ {formatCurrency(parseFloat(cashAmount) || 0)}</span>
+                                                    </div>
+                                                )}
+                                                {onlineAmount !== "" && parseFloat(onlineAmount) > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span>Online Payment:</span>
+                                                        <span>₹ {formatCurrency(parseFloat(onlineAmount) || 0)}</span>
+                                                    </div>
+                                                )}
+                                                {chequeAmount !== "" && parseFloat(chequeAmount) > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span>Cheque Payment:</span>
+                                                        <span>₹ {formatCurrency(parseFloat(chequeAmount) || 0)}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Summary for Finance - ONLY show if financed */}
+                                                {isFinanced && (
+                                                    <>
+                                                        <div className="flex justify-between border-t border-dashed border-slate-300 mt-1 pt-1">
+                                                            <span>Total Down Payment:</span>
+                                                            <span>₹ {formatCurrency(downPayment)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span>Financed / Remaining:</span>
+                                                            <span>₹ {formatCurrency(financedAmount)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-blue-800 mt-1">
+                                                            <span>EMI: ₹{monthlyEmi} x {financeTenure} Months</span>
+                                                            <span>{financerName ? `(${financerName})` : ''}</span>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span>Online Payment:</span>
-                                                <span>₹ {formatCurrency(parseFloat(onlineAmount) || 0)}</span>
-                                            </div>
-                                        </div>
-                                    )}
+                                        )}
                                 </td>
                             </tr>
                         </tfoot>

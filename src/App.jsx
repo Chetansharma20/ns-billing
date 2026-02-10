@@ -24,6 +24,11 @@ function App() {
               <Billing type="billing" />
             </PrivateRoute>
           } />
+          <Route path="/finance" element={
+            <PrivateRoute>
+              <Billing type="finance" />
+            </PrivateRoute>
+          } />
           <Route path="/quotation" element={
             <PrivateRoute>
               <Billing type="quotation" />
