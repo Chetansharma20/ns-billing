@@ -337,6 +337,8 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
         monthlyEmi,
         financeTenure,
         financerName,
+        warranty1,
+        warranty2,
         gstType = 'cgst_sgst',
         date,
         invoiceNumber
@@ -501,7 +503,8 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
                     {(
                         (cashAmount !== "" && parseFloat(cashAmount) > 0) ||
                         (onlineAmount !== "" && parseFloat(onlineAmount) > 0) ||
-                        (chequeAmount !== "" && parseFloat(chequeAmount) > 0)
+                        (chequeAmount !== "" && parseFloat(chequeAmount) > 0) ||
+                        isFinanced
                     ) && (
                             <View style={{ marginTop: 5, padding: 5, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#d1d5db', borderStyle: 'solid' }}>
                                 {cashAmount !== "" && parseFloat(cashAmount) > 0 && (
@@ -535,7 +538,7 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
                                         </View>
                                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 1 }}>
                                             <Text style={{ fontSize: 9 }}>EMI Details: {monthlyEmi} x {financeTenure} Months</Text>
-                                            <Text style={{ fontSize: 9 }}>{financerName ? `(${financerName.toUpperCase()})` : ''}</Text>
+                                            <Text style={{ fontSize: 9 }}>{financerName ? `(${financerName.toUpperCase()})` : ' '}</Text>
                                         </View>
                                     </>
                                 )}
@@ -557,8 +560,8 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
                 <View style={styles.termsSection}>
                     <Text style={styles.termsTitle}>Terms & Conditions:</Text>
                     <Text style={styles.termItem}>1. Goods once sold will not be taken back.</Text>
-                    <Text style={styles.termItem}>2. Motor and controller carry a warranty of 2 years.</Text>
-                    <Text style={styles.termItem}>3. Battery and charger carry a warranty of 1 year.</Text>
+                    <Text style={styles.termItem}>2. {warranty1 || "Motor and controller carry a warranty of 2 years."}</Text>
+                    <Text style={styles.termItem}>3. {warranty2 || "Battery and charger carry a warranty of 1 year."}</Text>
                     <Text style={styles.termItem}>4. No warranty is provided for physical damage or breakage.</Text>
                 </View>
 

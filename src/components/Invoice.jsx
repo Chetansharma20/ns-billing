@@ -38,6 +38,8 @@ const Invoice = React.forwardRef(({ data, type = "billing" }, ref) => {
         monthlyEmi,
         financeTenure,
         financerName,
+        warranty1,
+        warranty2,
         gstType = 'cgst_sgst',
         date,
         invoiceNumber
@@ -235,7 +237,8 @@ const Invoice = React.forwardRef(({ data, type = "billing" }, ref) => {
                                     {(
                                         (cashAmount !== "" && parseFloat(cashAmount) > 0) ||
                                         (onlineAmount !== "" && parseFloat(onlineAmount) > 0) ||
-                                        (chequeAmount !== "" && parseFloat(chequeAmount) > 0)
+                                        (chequeAmount !== "" && parseFloat(chequeAmount) > 0) ||
+                                        isFinanced
                                     ) && (
                                             <div className="mt-2 pt-1 border-t border-dashed border-slate-400 text-[10px] text-slate-600 font-bold uppercase">
                                                 {/* Individual Payment Methods */}
@@ -293,8 +296,8 @@ const Invoice = React.forwardRef(({ data, type = "billing" }, ref) => {
                         <h4 className="font-black text-gray-900 mb-2 uppercase text-sm">Terms & Conditions:</h4>
                         <ol className="list-decimal list-inside space-y-1 font-medium">
                             <li>Goods once sold will not be taken back.</li>
-                            <li>Motor and controller carry a warranty of 2 years.</li>
-                            <li>Battery and charger carry a warranty of 1 year.</li>
+                            <li>{warranty1 || "Motor and controller carry a warranty of 2 years."}</li>
+                            <li>{warranty2 || "Battery and charger carry a warranty of 1 year."}</li>
                             <li>No warranty is provided for physical damage or breakage.</li>
                         </ol>
                     </div>

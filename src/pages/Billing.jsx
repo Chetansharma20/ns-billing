@@ -38,6 +38,8 @@ const INITIAL_STATE = {
   monthlyEmi: "",
   financeTenure: "",
   financerName: "",
+  warranty1: "Motor and controller carry a warranty of 2 years.", // Default text
+  warranty2: "Battery and charger carry a warranty of 1 year.",   // Default text
   gstType: "cgst_sgst", // 'cgst_sgst' or 'igst'
   date: new Date().toISOString().split("T")[0],
   invoiceNumber: "",
@@ -603,6 +605,33 @@ const Billing = ({ type = "billing" }) => {
                       You can edit the invoice number manually. If left blank, a
                       number will be auto-generated when saving/downloading.
                     </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Warranty 1 *
+                    </label>
+                    <input
+                      type="text"
+                      name="warranty1"
+                      value={formData.warranty1}
+                      onChange={handleChange}
+                      className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., Motor and controller: 2 years"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Warranty 2 *
+                    </label>
+                    <input
+                      type="text"
+                      name="warranty2"
+                      value={formData.warranty2}
+                      onChange={handleChange}
+                      className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., Battery and charger: 1 year"
+                    />
                   </div>
 
                   <div>
