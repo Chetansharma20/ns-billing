@@ -30,6 +30,7 @@ const INITIAL_STATE = {
   batteryNo: "",
   chargerNo: "",
   color: "",
+  hsnCode: "87116010", // Default HSN for electric scooters
   price: "",
   cashAmount: "",
   onlineAmount: "",
@@ -560,6 +561,22 @@ const Billing = ({ type = "billing" }) => {
                       className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter charger number"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      HSN Code
+                    </label>
+                    <input
+                      type="text"
+                      name="hsnCode"
+                      value={formData.hsnCode}
+                      onChange={handleChange}
+                      className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., 87116010"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      HSN code for the vehicle (default: 87116010 for electric scooters)
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

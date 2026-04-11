@@ -330,6 +330,7 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
         batteryNo,
         chargerNo,
         color,
+        hsnCode,
         price,
         cashAmount,
         onlineAmount,
@@ -462,7 +463,7 @@ const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
                                 {chargerNo && <Text style={styles.vehicleRow}><Text style={styles.boldText}>Charger No: </Text>{chargerNo}</Text>}
                             </View>
                         </View>
-                        <Text style={[styles.tableCell, styles.tableCellHsn]}>{SHOP_DETAILS.hsn}</Text>
+                        <Text style={[styles.tableCell, styles.tableCellHsn]}>{hsnCode || SHOP_DETAILS.hsn}</Text>
                         <Text style={[styles.tableCell, styles.tableCellQty]}>1</Text>
                         <Text style={[styles.tableCell, styles.tableCellRate]}>{formatCurrency(basePrice)}</Text>
                         <Text style={[styles.tableCell, styles.tableCellAmount]}>{formatCurrency(basePrice)}</Text>

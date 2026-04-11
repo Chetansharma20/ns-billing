@@ -31,6 +31,7 @@ const Invoice = React.forwardRef(({ data, type = "billing" }, ref) => {
         batteryNo,
         chargerNo,
         color,
+        hsnCode,
         price,
         cashAmount,
         onlineAmount,
@@ -194,7 +195,7 @@ const Invoice = React.forwardRef(({ data, type = "billing" }, ref) => {
                                         {chargerNo && <p><span className="font-bold">Charger No:</span> {chargerNo}</p>}
                                     </div>
                                 </td>
-                                <td className="border-2 border-slate-600 p-2 text-center align-top font-semibold">{SHOP_DETAILS.hsn}</td>
+                                <td className="border-2 border-slate-600 p-2 text-center align-top font-semibold">{hsnCode || SHOP_DETAILS.hsn}</td>
                                 <td className="border-2 border-slate-600 p-2 text-center align-top font-semibold">1</td>
                                 <td className="border-2 border-slate-600 p-2 text-right align-top font-semibold">{basePrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 <td className="border-2 border-slate-600 p-2 text-right align-top font-semibold">{basePrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
