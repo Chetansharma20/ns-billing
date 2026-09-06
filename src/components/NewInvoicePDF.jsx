@@ -6,7 +6,7 @@ import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/render
 const SHOP_DETAILS = {
     name: "NS MOTORS",
     address: "SERVE NO 208/9, SHOP NO 1, SHRIRAM NAGAR, YEOLA ROAD, Chamunda Steel Traders, Vidya Nagar, Kopargaon Ahilyanagar, Maharashtra, 423601",
-    mobile: "+91 80554 43533",
+    mobile: "+91 77969 50202",
     gstin: "27AKNPW2296B1ZR",
     hsn: "87116010",
     email: "nikhilwakode2006@gmail.com"
