@@ -314,7 +314,7 @@ const formatCurrency = (num) => {
     }
 };
 
-const InvoicePDF = ({ data, logoBase64, whatsappBase64, type = "billing" }) => {
+const InvoicePDF = ({ data, logoBase64 = "/logo.PNG", whatsappBase64, type = "billing" }) => {
     const isQuotation = type === "quotation";
     const numberLabel = isQuotation ? "Quotation No" : "Invoice No";
     const docTitle = isQuotation ? "QUOTATION" : "TAX INVOICE";

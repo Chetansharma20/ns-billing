@@ -16,7 +16,7 @@ import {
 import { pdf } from "@react-pdf/renderer";
 import Invoice from "../components/Invoice";
 import InvoicePDF from "../components/NewInvoicePDF";
-import logo from "../assets/zelio.png";
+const logo = "/logo.PNG";
 import whatsappIcon from "../assets/whatsapp-icon.png";
 
 const INITIAL_STATE = {

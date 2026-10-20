@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from '../assets/zelio.png';
+const logo = '/logo.PNG';
 import whatsappIcon from '../assets/whatsapp-icon.png';
 
 
@@ -118,7 +118,7 @@ const Invoice = React.forwardRef(({ data, type = "billing" }, ref) => {
                     <div className="flex items-start justify-between gap-4">
                         {/* Left: Logo */}
                         <div className="flex-shrink-0 relative -top-3">
-                            <img src={logo} alt="Zelio Ebikes" className="h-28 w-auto object-contain drop-shadow-md " />
+                            <img src={logo} alt="NS Motors Logo" className="h-28 w-auto object-contain drop-shadow-md " />
                         </div>
 
                         {/* Center: Shop Name & Address */}
